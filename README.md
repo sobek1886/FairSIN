@@ -3,11 +3,16 @@
 Adapted from original FairSIN implementation, following instructions provided by authors of NIFA
 https://github.com/Landon5282/FairSIN
 
-To install requirements:
+To install the environment:
 ```shell
 conda env create -f fact_fairsin.yml
 conda activate fact_fairsin
 ```
+
+You can access all the necessary data for reproducing the experiments in the following Google Drive folder:
+https://drive.google.com/drive/folders/1RWp7vzeS-t57A1OByBOHXoOiZkNzvnpF?usp=share_link
+Place the 'output' folder in the same directory as the rest of the code
+
 
 The instructions for the relevant experiments are all saved in **nifa.sh.**
 
