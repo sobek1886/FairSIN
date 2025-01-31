@@ -8,10 +8,12 @@ from torch import tensor
 import warnings
 warnings.filterwarnings('ignore')
 import math
-os.environ['CUDA_VISIBLE_DEVICES'] = '6'
 from torch.optim.lr_scheduler import ExponentialLR
 import time
 from memory_profiler import memory_usage
+#from clearml import Task
+#from codecarbon import track_emissions
+from codecarbon import EmissionsTracker
 
 class MLP(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim):
@@ -30,14 +32,17 @@ class MLP(torch.nn.Module):
         self.fc1.reset_parameters()
         self.fc2.reset_parameters()
         self.fc3.reset_parameters()
-    
+
+#@track_emissions()    
 def run(data, args):
+    print('starting the run')
     pbar = tqdm(range(args.runs), unit='run')
     criterion = nn.BCELoss()
     acc, f1, auc_roc, parity, equality = np.zeros(args.runs), np.zeros(
         args.runs), np.zeros(args.runs), np.zeros(args.runs), np.zeros(args.runs)
 
     data = data.to(args.device)
+    print('data loaded succesfully')
 
 
     discriminator = MLP_discriminator(args).to(args.device)
@@ -121,6 +126,7 @@ def run(data, args):
     from sklearn.model_selection import train_test_split
 
     indices = np.arange(c_X.shape[0]) # help for check the index after split
+    print(f'indices: {indices}')
     [indices_train, indices_test, y_train, y_test] = train_test_split(indices, indices, test_size=0.1)
     X_train, X_test, y_train, y_test = c_X[indices_train], c_X[indices_test], h_X[indices_train], h_X[indices_test]
 
@@ -198,6 +204,9 @@ def run(data, args):
                     h = encoder(data.x + args.delta * model(data.x), data.edge_index, data.adj_norm_sp)
                     output = discriminator(h)
 
+                    print('-'*20)
+                    print(f'output: {output.view(-1)}')
+                    print(f'data: {data.x[:, args.sens_idx]}')
                     loss_d = criterion(output.view(-1),
                                         data.x[:, args.sens_idx])
 
@@ -238,16 +247,14 @@ def run(data, args):
         auc_roc[count] = test_auc_roc
         parity[count] = test_parity
         equality[count] = test_equality
-
     return acc, f1, auc_roc, parity, equality
-
-
-
 
 
 if __name__ == '__main__':
     # start_time = time.time()
     # mem_usage = memory_usage()[0]
+    tracker = EmissionsTracker()
+    tracker.start()
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='german')
     parser.add_argument('--runs', type=int, default=5)
@@ -274,8 +281,17 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     data, args.sens_idx, args.x_min, args.x_max = get_dataset(args.dataset)
-    args.num_features, args.num_classes = data.x.shape[1], 2-1 # binary classes are 0,1 
+    args.num_features, args.num_classes = data.x.shape[1], 2-1 # binary classes are 0,1'''
 
+    # Used ClearML for experiment tracking
+    '''# Connect to the ClearML server and create a task
+    task = Task.init(project_name="FairSIN_NIFA", 
+                 task_name=f'run {args.dataset} d={args.d} hidden={args.hidden} delta={args.delta} c_lr={args.c_lr}', 
+                 task_type=Task.TaskTypes.optimizer,  # You can also use TaskTypes.container, or TaskTypes.custom
+                 reuse_last_task_id=False)
+    
+    # Connect all parameters from argparse to ClearML
+    task.connect(vars(args))  # Log parameters to ClearML'''
 
     acc, f1, auc_roc, parity, equality = run(data, args)
 
@@ -289,5 +305,6 @@ if __name__ == '__main__':
     print('f1:', round(np.mean(f1) * 100,2), '±' ,round(np.std(f1) * 100,2), sep='')
     print('parity:', round(np.mean(parity) * 100,2), '±', round(np.std(parity) * 100,2), sep='')
     print('equality:', round(np.mean(equality) * 100,2), '±', round(np.std(equality) * 100,2), sep='')
+    tracker.stop()
     # print('run time {} s'.format(run_time))
     # print('max memory usage {} MB'.format(max_mem_usage))

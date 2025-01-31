@@ -1,0 +1,27 @@
+name: fact_fairsin
+channels:
+  - dglteam/label/th24_cu124
+  - pytorch
+  - nvidia
+  - conda-forge
+  - anaconda
+  - defaults
+dependencies:
+  - python=3.12.8
+  - pip=24.3.1
+  - pytorch=2.4.0
+  - pytorch-cuda=12.4
+  - dgl=2.4.0
+  - pandas=2.2.3
+  - matplotlib=3.10.0
+  - scikit-learn=1.6.1
+  - numpy=2.2.1
+  - pandas=2.2.3
+  - tqdm=4.67.1
+  - pip
+  - pip:
+      - torch-geometric==2.2.0
+      - torch-scatter==2.1.1
+      - torch-sparse==0.6.17
+      - memory_profiler==0.61.0
+
